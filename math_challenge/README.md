@@ -1,61 +1,115 @@
-# Math Challenge
+# 🧮 Math Challenge
 
-Math Challenge is a Windows desktop quiz app built with Python and CustomTkinter for children to practice daily math.
+> A daily math quiz desktop app for kids — fun, fast, and gets a little trickier as you go!
 
-## Features
+![Platform](https://img.shields.io/badge/platform-Windows-blue?logo=windows)
+![Python](https://img.shields.io/badge/python-3.10%2B-yellow?logo=python)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-- 43 questions per quiz (9 for each operation, 6 story questions, and 1 bonus)
-- Daily deterministic question set based on date seed
-- Score out of 100 with weighted sections
-- Daily completion tracking in `daily_tracker.json`
-- Animated score screen with stars, celebration, and a last-10-days score chart
+---
 
-## Requirements
+## ⬇️ Download (Windows — no install needed)
 
-- Python 3.10+
-- Windows 10 or newer
+**Grab the latest single-file executable from the [Releases page](https://github.com/BangGor88/python-mathchallange/releases/latest).**
 
-## Setup
+1. Go to [Releases](https://github.com/BangGor88/python-mathchallange/releases/latest).
+2. Download **`MathChallenge.exe`** under *Assets*.
+3. Double-click it — no Python or installation required.
 
-1. Open a terminal in the `math_challenge` folder.
-2. Install dependencies:
+> The app saves your daily score log in a `daily_tracker.json` file next to the executable.
+
+---
+
+## ✨ Features
+
+| Feature | Detail |
+|---|---|
+| 📐 43 questions per day | 9 × Addition, Subtraction, Multiplication, Division · 6 Story problems · 1 Bonus |
+| 🎲 Fresh questions daily | Seeded by today's date — same questions if you reopen the same day |
+| 🟢 Easy start | First 3 questions in each operation are simpler to warm up |
+| 🏆 Score out of 100 | Weighted sections (A: 60 pts · B: 20 pts · Bonus: 20 pts) |
+| ⭐ Star rating | 0 – 5 stars based on your final score |
+| 📊 Score history chart | Last 10 days shown on the results screen |
+| 🎉 Celebration animations | Confetti, pulsing AMAZING message, and encouragement |
+| 🔄 Try Again / New Questions | Replay the same set or generate a fresh one |
+| ✅ Minimum passing score | Must reach **40 points** to mark the day as complete |
+| 📅 Daily completion tracking | Already done today? The app asks if you want extra practice |
+
+---
+
+## 🖥️ Screenshots
+
+> *(Add screenshots here after first run)*
+
+---
+
+## 🚀 Running from Source
+
+**Requirements:** Python 3.10+, Windows 10 or newer.
 
 ```bash
-python -m pip install -r requirements.txt
-```
+# 1 — Clone the repo
+git clone https://github.com/BangGor88/python-mathchallange.git
+cd python-mathchallange/math_challenge
 
-## Run
+# 2 — Create a virtual environment (recommended)
+python -m venv ../.venv
+../.venv/Scripts/activate
 
-Use one of the following:
+# 3 — Install dependencies
+pip install -r requirements.txt
 
-```bash
+# 4 — Run
 python main.py
 ```
 
-Or double-click the Windows launcher:
+Or just double-click **`run_app.bat`** after installing dependencies.
 
-- `run_app.bat`
+---
 
-## Build Single EXE (Windows)
+## 🔨 Build the EXE Yourself
 
-A one-file executable builder with a fun kid-friendly icon is included.
-
-1. Open PowerShell in the `math_challenge` folder.
-2. Run:
+A fully automated PowerShell build script generates a kid-friendly icon and packages everything into one file.
 
 ```powershell
+# Inside the math_challenge folder
 powershell -ExecutionPolicy Bypass -File .\package_exe.ps1
 ```
 
-Build outputs:
+Output: **`dist/MathChallenge.exe`**
 
-- Executable: `dist/MathChallenge.exe`
-- Generated icon: `build_assets/math_challenge_icon.ico`
+---
 
-## Test
-
-Run all unit tests:
+## 🧪 Tests
 
 ```bash
 pytest tests/
 ```
+
+All 13 unit tests cover question generation, scoring weights, and daily tracker persistence.
+
+---
+
+## 📁 Project Structure
+
+```
+math_challenge/
+├── main.py              ← Entry point
+├── app.py               ← Main CustomTkinter window and all UI
+├── questions.py         ← Deterministic question generation
+├── scorer.py            ← Answer checking and weighted scoring
+├── tracker.py           ← Daily JSON read/write tracking
+├── animations.py        ← Confetti and celebration effects
+├── constants.py         ← Colours, fonts, templates, config
+├── tests/               ← Pytest unit tests
+├── package_exe.ps1      ← Auto-build script (icon + PyInstaller)
+├── run_app.bat          ← Quick launcher for Windows
+└── requirements.txt     ← customtkinter · pytest
+```
+
+---
+
+## 📜 License
+
+MIT — free to use, share, and modify.
+
