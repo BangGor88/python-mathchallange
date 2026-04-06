@@ -6,6 +6,8 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-yellow?logo=python)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+![Math Challenge](Math%20Challange%20-%20Quiz.png)
+
 ---
 
 ## ⬇️ Download (Windows — no install needed)
@@ -32,6 +34,8 @@
 | 🏆 Score out of 100 | Weighted sections (A: 60 pts · B: 20 pts · Bonus: 20 pts) |
 | ⭐ Star rating | 0 – 5 stars based on your final score |
 | 📊 Score history chart | Last 10 days shown on the results screen |
+| 🌍 Language options | English (default), Swedish, German, and Indonesian |
+| 🗣️ Story translation | Story questions and popups follow selected language |
 | 🎉 Celebration animations | Confetti, pulsing AMAZING message, and encouragement |
 | 🔄 Try Again / New Questions | Replay the same set or generate a fresh one |
 | ✅ Minimum passing score | Must reach **40 points** to mark the day as complete |
