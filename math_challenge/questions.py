@@ -10,13 +10,13 @@ from constants import BONUS_TEMPLATES, QUESTION_COUNTS, STORY_TEMPLATES
 Question = dict[str, Any]
 
 
-def _build_story_question(template: dict[str, Any], rng: random.Random) -> tuple[str, int]:
+def _build_story_question(template: dict[str, Any], rng: random.Random) -> tuple[str, int, dict[str, Any]]:
     values = template["generator"](rng)
     if "post_process" in template:
         values = template["post_process"](values)
     answer = int(template["answer"](values))
     text = template["text"].format(**values)
-    return text, answer
+    return text, answer, values
 
 
 def generate_questions(seed: int) -> list[Question]:
@@ -97,19 +97,21 @@ def generate_questions(seed: int) -> list[Question]:
 
     selected_story_templates = rng.sample(STORY_TEMPLATES, QUESTION_COUNTS["story"])
     for template in selected_story_templates:
-        text, answer = _build_story_question(template, rng)
+        text, answer, values = _build_story_question(template, rng)
         questions.append(
             {
                 "id": question_id,
                 "section": "story",
                 "question_text": text,
                 "correct_answer": answer,
+                "template_id": template["id"],
+                "template_values": values,
             }
         )
         question_id += 1
 
     bonus_template = rng.choice(BONUS_TEMPLATES)
-    bonus_text, bonus_answer = _build_story_question(bonus_template, rng)
+    bonus_text, bonus_answer, _ = _build_story_question(bonus_template, rng)
     questions.append(
         {
             "id": question_id,

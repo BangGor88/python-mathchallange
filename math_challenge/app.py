@@ -15,9 +15,11 @@ from constants import (
     COLORS,
     default_daily_seed,
     FONTS,
+    LANGUAGE_OPTIONS,
     MINIMUM_PASS_SCORE,
     SCORE_LOG_DAYS,
-    SECTION_HEADINGS,
+    STORY_TEMPLATE_TRANSLATIONS,
+    UI_TEXT,
     WINDOW_HEIGHT,
     WINDOW_WIDTH,
 )
@@ -40,6 +42,9 @@ class MathChallengeApp(ctk.CTk):
         self.last_results: dict[int, bool] = {}
         self.last_unanswered_ids: set[int] = set()
         self.last_wrong_ids: set[int] = set()
+        self.current_language = "en"
+        self.language_display_to_code = dict(LANGUAGE_OPTIONS)
+        self.language_code_to_display = {code: display for display, code in LANGUAGE_OPTIONS.items()}
         self.score_frame: ctk.CTkFrame | None = None
         self.score_value_label: ctk.CTkLabel | None = None
         self.score_canvas: tk.Canvas | None = None
@@ -75,22 +80,46 @@ class MathChallengeApp(ctk.CTk):
         self.header = ctk.CTkFrame(self, corner_radius=16, fg_color=COLORS["panel"])
         self.header.grid(row=0, column=0, padx=16, pady=(16, 10), sticky="ew")
         self.header.grid_columnconfigure(0, weight=1)
+        self.header.grid_columnconfigure(1, weight=0)
 
-        title_label = ctk.CTkLabel(
+        self.title_label = ctk.CTkLabel(
             self.header,
             text=APP_TITLE,
             font=FONTS["title"],
             text_color=COLORS["accent"],
         )
-        title_label.grid(row=0, column=0, padx=12, pady=(10, 2), sticky="w")
+        self.title_label.grid(row=0, column=0, padx=12, pady=(10, 2), sticky="w")
 
-        date_label = ctk.CTkLabel(
+        self.date_label = ctk.CTkLabel(
             self.header,
-            text=f"Today: {date.today().strftime('%A, %d %B %Y')}",
+            text=self._today_label_text(),
             font=FONTS["label"],
             text_color=COLORS["text"],
         )
-        date_label.grid(row=1, column=0, padx=12, pady=(0, 10), sticky="w")
+        self.date_label.grid(row=1, column=0, padx=12, pady=(0, 10), sticky="w")
+
+        self.language_label = ctk.CTkLabel(
+            self.header,
+            text=self._t("language"),
+            font=FONTS["label"],
+            text_color=COLORS["text"],
+        )
+        self.language_label.grid(row=0, column=1, padx=(12, 12), pady=(10, 2), sticky="e")
+
+        self.language_var = ctk.StringVar(value=self.language_code_to_display[self.current_language])
+        self.language_menu = ctk.CTkOptionMenu(
+            self.header,
+            values=list(LANGUAGE_OPTIONS.keys()),
+            variable=self.language_var,
+            command=self._on_language_change,
+            font=FONTS["label"],
+            fg_color=COLORS["accent"],
+            button_color=COLORS["accent_hover"],
+            button_hover_color=COLORS["accent_hover"],
+            text_color="#F4FBF6",
+            width=180,
+        )
+        self.language_menu.grid(row=1, column=1, padx=(12, 12), pady=(0, 10), sticky="e")
 
         self.scrollable = ctk.CTkScrollableFrame(self, fg_color=COLORS["panel"])
         self.scrollable.grid(row=1, column=0, padx=16, pady=8, sticky="nsew")
@@ -102,7 +131,7 @@ class MathChallengeApp(ctk.CTk):
 
         self.submit_button = ctk.CTkButton(
             self,
-            text="Submit Answers",
+            text=self._t("submit_answers"),
             width=300,
             height=52,
             font=FONTS["button"],
@@ -143,7 +172,7 @@ class MathChallengeApp(ctk.CTk):
         for section in section_order:
             heading = ctk.CTkLabel(
                 self.scrollable,
-                text=SECTION_HEADINGS[section],
+                text=self._section_heading(section),
                 font=FONTS["header"],
                 text_color=COLORS["accent"],
             )
@@ -162,7 +191,7 @@ class MathChallengeApp(ctk.CTk):
 
                 question_text = ctk.CTkLabel(
                     card,
-                    text=f"Q{question['id']}. {question['question_text']}",
+                    text=f"Q{question['id']}. {self._display_question_text(question)}",
                     font=FONTS["question"],
                     text_color=COLORS["text"],
                     anchor="w",
@@ -206,12 +235,11 @@ class MathChallengeApp(ctk.CTk):
 
         score = get_today_score()
         shown_score = score if score is not None else 0
-        open_anyway = messagebox.askyesno(
-            "Quiz Completed",
-            "You already finished today's quiz! "
-            f"Your score was {shown_score}/100.\n\n"
-            "Would you like to open the app anyway for extra practice?",
-            parent=self,
+        open_anyway = self._ask_confirmation(
+            title=self._t("quiz_completed_title"),
+            message=self._t("quiz_completed_message", score=shown_score),
+            confirm_text=self._t("popup_open_anyway"),
+            cancel_text=self._t("popup_exit"),
         )
         if not open_anyway:
             self.destroy()
@@ -227,10 +255,11 @@ class MathChallengeApp(ctk.CTk):
                 blank_count += 1
 
         if blank_count > 0:
-            should_continue = messagebox.askyesno(
-                "Unanswered Questions",
-                f"You have {blank_count} unanswered questions. Submit anyway?",
-                parent=self,
+            should_continue = self._ask_confirmation(
+                title=self._t("unanswered_title"),
+                message=self._t("unanswered_message", count=blank_count),
+                confirm_text=self._t("popup_submit_anyway"),
+                cancel_text=self._t("popup_go_back"),
             )
             if not should_continue:
                 return
@@ -264,11 +293,11 @@ class MathChallengeApp(ctk.CTk):
         if score >= MINIMUM_PASS_SCORE:
             save_today(score)
         else:
-            redo_now = messagebox.askyesno(
-                "Minimum Score",
-                f"You need at least {MINIMUM_PASS_SCORE} points to finish today. "
-                "Would you like to redo now?",
-                parent=self,
+            redo_now = self._ask_confirmation(
+                title=self._t("minimum_score_title"),
+                message=self._t("minimum_score_message", minimum=MINIMUM_PASS_SCORE),
+                confirm_text=self._t("popup_redo_now"),
+                cancel_text=self._t("popup_later"),
             )
             if redo_now:
                 self._prepare_retry_entries()
@@ -292,6 +321,8 @@ class MathChallengeApp(ctk.CTk):
             label.configure(text="")
 
     def _show_score_screen(self, score: int, results: dict[int, bool]) -> None:
+        self.language_label.grid_remove()
+        self.language_menu.grid_remove()
         self.scrollable.grid_forget()
         self.submit_button.grid_forget()
 
@@ -304,7 +335,7 @@ class MathChallengeApp(ctk.CTk):
 
         title = ctk.CTkLabel(
             self.score_frame,
-            text="Your Score",
+            text=self._t("your_score"),
             font=FONTS["header"],
             text_color=COLORS["accent"],
         )
@@ -331,7 +362,7 @@ class MathChallengeApp(ctk.CTk):
 
         breakdown_label = ctk.CTkLabel(
             self.score_frame,
-            text=f"Section A: {breakdown['A']}/60   Section B: {breakdown['B']}/20   Bonus: {breakdown['bonus']}/20",
+            text=self._t("section_breakdown", a=breakdown["A"], b=breakdown["B"], bonus=breakdown["bonus"]),
             font=FONTS["label"],
             text_color=COLORS["text"],
         )
@@ -342,7 +373,7 @@ class MathChallengeApp(ctk.CTk):
 
         try_again = ctk.CTkButton(
             button_row,
-            text="🔄 Try Again (same questions)",
+            text=self._t("retry_button"),
             font=FONTS["label"],
             fg_color=COLORS["accent"],
             command=lambda: self._reset_quiz(self.current_seed, preserve_previous=True),
@@ -353,7 +384,7 @@ class MathChallengeApp(ctk.CTk):
 
         new_questions = ctk.CTkButton(
             button_row,
-            text="🆕 New Questions",
+            text=self._t("new_questions_button"),
             font=FONTS["label"],
             fg_color=COLORS["bonus"],
             hover_color="#D98A0E",
@@ -368,7 +399,7 @@ class MathChallengeApp(ctk.CTk):
 
         retry_title = ctk.CTkLabel(
             self.score_frame,
-            text="Retry Focus (no answers shown)",
+            text=self._t("retry_focus"),
             font=FONTS["header"],
             text_color=COLORS["accent"],
         )
@@ -389,7 +420,7 @@ class MathChallengeApp(ctk.CTk):
 
         ctk.CTkLabel(
             unanswered_box,
-            text="No Answer",
+            text=self._t("no_answer"),
             font=FONTS["header"],
             text_color=COLORS["accent"],
             anchor="w",
@@ -397,7 +428,7 @@ class MathChallengeApp(ctk.CTk):
 
         ctk.CTkLabel(
             wrong_box,
-            text="Wrong Answer",
+            text=self._t("wrong_answer"),
             font=FONTS["header"],
             text_color=COLORS["accent"],
             anchor="w",
@@ -406,7 +437,7 @@ class MathChallengeApp(ctk.CTk):
         if not unanswered_questions:
             ctk.CTkLabel(
                 unanswered_box,
-                text="None",
+                text=self._t("none"),
                 font=FONTS["label"],
                 text_color=COLORS["muted"],
                 anchor="w",
@@ -415,7 +446,7 @@ class MathChallengeApp(ctk.CTk):
             for index, question in enumerate(unanswered_questions, start=1):
                 ctk.CTkLabel(
                     unanswered_box,
-                    text=f"Q{question['id']}: {question['question_text']}",
+                    text=f"Q{question['id']}: {self._display_question_text(question)}",
                     font=FONTS["label"],
                     text_color=COLORS["text"],
                     anchor="w",
@@ -426,7 +457,7 @@ class MathChallengeApp(ctk.CTk):
         if not wrong_questions:
             ctk.CTkLabel(
                 wrong_box,
-                text="None",
+                text=self._t("none"),
                 font=FONTS["label"],
                 text_color=COLORS["muted"],
                 anchor="w",
@@ -435,7 +466,7 @@ class MathChallengeApp(ctk.CTk):
             for index, question in enumerate(wrong_questions, start=1):
                 ctk.CTkLabel(
                     wrong_box,
-                    text=f"Q{question['id']}: {question['question_text']}",
+                    text=f"Q{question['id']}: {self._display_question_text(question)}",
                     font=FONTS["label"],
                     text_color=COLORS["text"],
                     anchor="w",
@@ -446,14 +477,14 @@ class MathChallengeApp(ctk.CTk):
         if not unanswered_questions and not wrong_questions:
             ctk.CTkLabel(
                 self.score_frame,
-                text="Amazing! You got every question right.",
+                text=self._t("perfect_message"),
                 font=FONTS["label"],
                 text_color=COLORS["text"],
             ).grid(row=7, column=0, pady=(0, 8))
 
         chart_title = ctk.CTkLabel(
             self.score_frame,
-            text=f"Daily Score Log (Last {SCORE_LOG_DAYS} Days)",
+            text=self._t("score_log", days=SCORE_LOG_DAYS),
             font=FONTS["header"],
             text_color=COLORS["accent"],
         )
@@ -487,7 +518,7 @@ class MathChallengeApp(ctk.CTk):
             canvas.create_text(
                 360,
                 105,
-                text="No completed scores yet.",
+                text=self._t("no_scores"),
                 fill=COLORS["muted"],
                 font=FONTS["header"],
             )
@@ -554,6 +585,8 @@ class MathChallengeApp(ctk.CTk):
             self.score_canvas = None
             self.animator = None
 
+        self.language_label.grid(row=0, column=1, padx=(12, 12), pady=(10, 2), sticky="e")
+        self.language_menu.grid(row=1, column=1, padx=(12, 12), pady=(0, 10), sticky="e")
         self.scrollable.grid(row=1, column=0, padx=16, pady=8, sticky="nsew")
         self.submit_button.grid(row=2, column=0, padx=16, pady=(10, 16))
         self._load_questions(seed)
@@ -581,3 +614,125 @@ class MathChallengeApp(ctk.CTk):
 
         if submit:
             self._submit_placeholder()
+
+    def _section_heading(self, section_key: str) -> str:
+        return self._t(f"section_{section_key}")
+
+    def _display_question_text(self, question: dict[str, Any]) -> str:
+        if question.get("section") != "story":
+            return str(question.get("question_text", ""))
+
+        if self.current_language == "en":
+            return str(question.get("question_text", ""))
+
+        template_id = question.get("template_id")
+        template_values = question.get("template_values")
+        if not isinstance(template_id, str) or not isinstance(template_values, dict):
+            return str(question.get("question_text", ""))
+
+        localized_template = STORY_TEMPLATE_TRANSLATIONS.get(self.current_language, {}).get(template_id)
+        if not localized_template:
+            return str(question.get("question_text", ""))
+
+        try:
+            return localized_template.format(**template_values)
+        except KeyError:
+            return str(question.get("question_text", ""))
+
+    def _today_label_text(self) -> str:
+        return f"{self._t('today_prefix')} {date.today().strftime('%A, %d %B %Y')}"
+
+    def _t(self, key: str, **kwargs: Any) -> str:
+        table = UI_TEXT.get(self.current_language, UI_TEXT["en"])
+        fallback = UI_TEXT["en"]
+        template = table.get(key, fallback.get(key, key))
+        return template.format(**kwargs)
+
+    def _on_language_change(self, selected_display: str) -> None:
+        selected_code = self.language_display_to_code.get(selected_display, "en")
+        if selected_code == self.current_language:
+            return
+
+        self.current_language = selected_code
+        self.language_label.configure(text=self._t("language"))
+        self.date_label.configure(text=self._today_label_text())
+        self.submit_button.configure(text=self._t("submit_answers"))
+
+        if self.score_frame is None:
+            existing_answers = {qid: entry.get() for qid, entry in self.answer_entries.items()}
+            self._render_questions()
+            for qid, value in existing_answers.items():
+                if qid in self.answer_entries:
+                    self.answer_entries[qid].insert(0, value)
+
+    def _ask_confirmation(self, title: str, message: str, confirm_text: str, cancel_text: str) -> bool:
+        dialog = ctk.CTkToplevel(self)
+        dialog.title(title)
+        dialog.transient(self)
+        dialog.grab_set()
+        dialog.configure(fg_color=COLORS["background"])
+        dialog.resizable(False, False)
+
+        dialog_width = 460
+        dialog_height = 220
+        self.update_idletasks()
+        x_pos = self.winfo_rootx() + (self.winfo_width() // 2) - (dialog_width // 2)
+        y_pos = self.winfo_rooty() + (self.winfo_height() // 2) - (dialog_height // 2)
+        dialog.geometry(f"{dialog_width}x{dialog_height}+{x_pos}+{y_pos}")
+
+        frame = ctk.CTkFrame(dialog, fg_color=COLORS["panel"], corner_radius=12)
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+
+        title_label = ctk.CTkLabel(frame, text=title, font=FONTS["header"], text_color=COLORS["accent"])
+        title_label.pack(anchor="w", padx=12, pady=(10, 6))
+
+        message_label = ctk.CTkLabel(
+            frame,
+            text=message,
+            font=FONTS["label"],
+            text_color=COLORS["text"],
+            justify="left",
+            anchor="w",
+            wraplength=420,
+        )
+        message_label.pack(anchor="w", padx=12, pady=(0, 12))
+
+        result = {"value": False}
+
+        def on_confirm() -> None:
+            result["value"] = True
+            dialog.destroy()
+
+        def on_cancel() -> None:
+            result["value"] = False
+            dialog.destroy()
+
+        button_row = ctk.CTkFrame(frame, fg_color=COLORS["panel"])
+        button_row.pack(anchor="e", padx=12, pady=(0, 12))
+
+        cancel_button = ctk.CTkButton(
+            button_row,
+            text=cancel_text,
+            font=FONTS["label"],
+            fg_color=COLORS["muted"],
+            hover_color=COLORS["secondary"],
+            command=on_cancel,
+            width=130,
+        )
+        cancel_button.grid(row=0, column=0, padx=(0, 8))
+
+        confirm_button = ctk.CTkButton(
+            button_row,
+            text=confirm_text,
+            font=FONTS["label"],
+            fg_color=COLORS["accent"],
+            hover_color=COLORS["accent_hover"],
+            text_color="#F4FBF6",
+            command=on_confirm,
+            width=150,
+        )
+        confirm_button.grid(row=0, column=1)
+
+        dialog.protocol("WM_DELETE_WINDOW", on_cancel)
+        self.wait_window(dialog)
+        return bool(result["value"])
