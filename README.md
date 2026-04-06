@@ -10,11 +10,18 @@
 
 ## ⬇️ Download (Windows — no install needed)
 
-**Grab the latest single-file executable from the [Releases page](https://github.com/BangGor88/python-mathchallange/releases/latest).**
+**Download the Windows executable from GitHub Releases:**
 
-1. Go to [Releases](https://github.com/BangGor88/python-mathchallange/releases/latest).
-2. Download **`MathChallenge.exe`** under *Assets*.
-3. Double-click it — no Python or installation required.
+- Direct download (latest release):
+	[Download EXE](https://github.com/BangGor88/python-mathchallange/releases/latest/download/MathChallenge.exe)
+- Releases page (if direct link is not available yet):
+	[Latest Release](https://github.com/BangGor88/python-mathchallange/releases/latest)
+
+1. Open one of the links above.
+2. Download **MathChallenge.exe**.
+3. Double-click it to run (no Python install required).
+
+If you do not see `MathChallenge.exe` yet, it means the asset has not been uploaded to the latest release.
 
 > The app saves your daily score log in a `daily_tracker.json` file next to the executable.
 
