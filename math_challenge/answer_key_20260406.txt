@@ -1,0 +1,132 @@
+Math Challenge QA Answer Key
+Seed: 20260406
+Total Questions: 43
+
+Q01 [addition] 60 + 8 = ?
+Answer: 68
+
+Q02 [addition] 48 + 6 = ?
+Answer: 54
+
+Q03 [addition] 83 + 3 = ?
+Answer: 86
+
+Q04 [addition] 2 + 93 = ?
+Answer: 95
+
+Q05 [addition] 10 + 90 = ?
+Answer: 100
+
+Q06 [addition] 69 + 32 = ?
+Answer: 101
+
+Q07 [addition] 44 + 54 = ?
+Answer: 98
+
+Q08 [addition] 64 + 84 = ?
+Answer: 148
+
+Q09 [addition] 86 + 83 = ?
+Answer: 169
+
+Q10 [subtraction] 88 - 3 = ?
+Answer: 85
+
+Q11 [subtraction] 39 - 6 = ?
+Answer: 33
+
+Q12 [subtraction] 71 - 8 = ?
+Answer: 63
+
+Q13 [subtraction] 31 - 27 = ?
+Answer: 4
+
+Q14 [subtraction] 36 - 7 = ?
+Answer: 29
+
+Q15 [subtraction] 90 - 41 = ?
+Answer: 49
+
+Q16 [subtraction] 64 - 57 = ?
+Answer: 7
+
+Q17 [subtraction] 85 - 74 = ?
+Answer: 11
+
+Q18 [subtraction] 86 - 16 = ?
+Answer: 70
+
+Q19 [multiplication] 8 x 4 = ?
+Answer: 32
+
+Q20 [multiplication] 3 x 1 = ?
+Answer: 3
+
+Q21 [multiplication] 3 x 4 = ?
+Answer: 12
+
+Q22 [multiplication] 8 x 11 = ?
+Answer: 88
+
+Q23 [multiplication] 2 x 10 = ?
+Answer: 20
+
+Q24 [multiplication] 9 x 12 = ?
+Answer: 108
+
+Q25 [multiplication] 12 x 17 = ?
+Answer: 204
+
+Q26 [multiplication] 4 x 13 = ?
+Answer: 52
+
+Q27 [multiplication] 11 x 15 = ?
+Answer: 165
+
+Q28 [division] 42 / 6 = ?
+Answer: 7
+
+Q29 [division] 32 / 8 = ?
+Answer: 4
+
+Q30 [division] 21 / 7 = ?
+Answer: 3
+
+Q31 [division] 32 / 4 = ?
+Answer: 8
+
+Q32 [division] 24 / 4 = ?
+Answer: 6
+
+Q33 [division] 48 / 6 = ?
+Answer: 8
+
+Q34 [division] 70 / 10 = ?
+Answer: 7
+
+Q35 [division] 6 / 2 = ?
+Answer: 3
+
+Q36 [division] 16 / 2 = ?
+Answer: 8
+
+Q37 [story] A coach has 32 players and splits them into 4 equal teams. How many players per team?
+Answer: 8
+
+Q38 [story] Tom saves £25 each week. How much does he save in 8 weeks?
+Answer: 200
+
+Q39 [story] There are 27 pages in a book. Maya reads 9 pages per day. How many days to finish?
+Answer: 3
+
+Q40 [story] Emma has 30 apples. She gives 13 to her friend. How many does she have left?
+Answer: 17
+
+Q41 [story] A farmer picks 14 eggs each day for 4 days. He sells 39 eggs. How many eggs remain?
+Answer: 17
+
+Q42 [story] Nina reads 4 chapters each week for 6 weeks, then rereads 5 chapters. How many chapters read in total?
+Answer: 29
+
+Q43 [bonus] There are 3 teams with 24 players each. They share into groups of 4. How many groups are made?
+Answer: 18

@@ -27,37 +27,44 @@ $bgBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
 )
 $gfx.FillRectangle($bgBrush, $rect)
 
-$faceBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 255, 243, 174))
-$faceRect = New-Object System.Drawing.Rectangle 28, 28, 200, 200
-$gfx.FillEllipse($faceBrush, $faceRect)
+$framePen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 77, 50, 35), 14)
+$rodPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 125, 83, 56), 8)
+$abacusFill = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 240, 222, 195))
 
-$outlinePen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 46, 90, 60), 6)
-$gfx.DrawEllipse($outlinePen, $faceRect)
+$frameRect = New-Object System.Drawing.Rectangle 28, 26, 200, 204
+$gfx.FillRectangle($abacusFill, $frameRect)
+$gfx.DrawRectangle($framePen, $frameRect)
 
-$eyeBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 46, 90, 60))
-$gfx.FillEllipse($eyeBrush, 84, 90, 22, 22)
-$gfx.FillEllipse($eyeBrush, 150, 90, 22, 22)
+$beadPalette = @(
+    [System.Drawing.Color]::FromArgb(255, 255, 99, 132),
+    [System.Drawing.Color]::FromArgb(255, 255, 159, 67),
+    [System.Drawing.Color]::FromArgb(255, 255, 206, 84),
+    [System.Drawing.Color]::FromArgb(255, 72, 219, 251),
+    [System.Drawing.Color]::FromArgb(255, 29, 209, 161)
+)
 
-$smilePen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 46, 90, 60), 7)
-$gfx.DrawArc($smilePen, 82, 105, 92, 80, 20, 140)
+$rowYs = @(60, 92, 124, 156, 188)
+$beadXs = @(56, 82, 108, 134, 160, 186)
 
-$font = New-Object System.Drawing.Font("Arial", 36, [System.Drawing.FontStyle]::Bold)
-$textBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 35, 112, 59))
-$gfx.DrawString("1+2", $font, $textBrush, 72, 150)
+for ($r = 0; $r -lt $rowYs.Count; $r++) {
+    $y = [int]$rowYs[$r]
+    $gfx.DrawLine($rodPen, 42, $y, 214, $y)
 
-$starBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 255, 184, 0))
-$gfx.FillPolygon($starBrush, @(
-    (New-Object System.Drawing.Point 214, 30),
-    (New-Object System.Drawing.Point 224, 56),
-    (New-Object System.Drawing.Point 252, 58),
-    (New-Object System.Drawing.Point 230, 74),
-    (New-Object System.Drawing.Point 238, 100),
-    (New-Object System.Drawing.Point 214, 84),
-    (New-Object System.Drawing.Point 190, 100),
-    (New-Object System.Drawing.Point 198, 74),
-    (New-Object System.Drawing.Point 176, 58),
-    (New-Object System.Drawing.Point 204, 56)
-))
+    for ($b = 0; $b -lt $beadXs.Count; $b++) {
+        $x = [int]$beadXs[$b]
+        $paletteIndex = ($r + $b) % $beadPalette.Count
+        $beadBrush = New-Object System.Drawing.SolidBrush($beadPalette[$paletteIndex])
+        $beadShadePen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 110, 73, 49), 2)
+        $gfx.FillEllipse($beadBrush, $x - 10, $y - 12, 20, 24)
+        $gfx.DrawEllipse($beadShadePen, $x - 10, $y - 12, 20, 24)
+        $beadBrush.Dispose()
+        $beadShadePen.Dispose()
+    }
+}
+
+$sparkBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(220, 255, 255, 255))
+$gfx.FillEllipse($sparkBrush, 34, 32, 10, 10)
+$gfx.FillEllipse($sparkBrush, 214, 214, 10, 10)
 
 $icon = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
 $fs = [System.IO.File]::Open($iconPath, [System.IO.FileMode]::Create)
@@ -66,13 +73,10 @@ $fs.Close()
 
 $gfx.Dispose()
 $bgBrush.Dispose()
-$faceBrush.Dispose()
-$outlinePen.Dispose()
-$eyeBrush.Dispose()
-$smilePen.Dispose()
-$font.Dispose()
-$textBrush.Dispose()
-$starBrush.Dispose()
+$framePen.Dispose()
+$rodPen.Dispose()
+$abacusFill.Dispose()
+$sparkBrush.Dispose()
 $icon.Dispose()
 $bmp.Dispose()
 
