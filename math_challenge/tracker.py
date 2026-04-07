@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import date
 from pathlib import Path
 from typing import Any
 
 from constants import TRACKER_FILENAME
 
-TRACKER_PATH = Path(__file__).resolve().parent / TRACKER_FILENAME
+# When running as a PyInstaller one-file EXE the module lives inside a
+# temporary _MEIPASS directory that is destroyed on exit.  Use the real
+# EXE directory so the tracker JSON survives between launches.
+if getattr(sys, "frozen", False):
+    _app_dir = Path(sys.executable).resolve().parent
+else:
+    _app_dir = Path(__file__).resolve().parent
+
+TRACKER_PATH = _app_dir / TRACKER_FILENAME
 
 
 def _today_key(target_date: date | None = None) -> str:

@@ -398,3 +398,24 @@ BONUS_TEMPLATES = [
         },
     },
 ]
+
+BONUS_TEMPLATE_TRANSLATIONS = {
+    "sv": {
+        "bonus_1": "En bagare bakar {a} brod per dag. Varje brod har {b} skivor. Om {c} skivor ats upp, hur manga skivor ar kvar?",
+        "bonus_2": "En skola koper {a} paket pennor med {b} pennor i varje paket och delar sedan ut {c} pennor. Hur manga pennor ar kvar?",
+        "bonus_3": "En buss tar {a} barn per tur och gor {b} turer. Om {c} barn redan har gatt hem, hur manga ar fortfarande i skolan?",
+        "bonus_4": "Det finns {a} lag med {b} spelare vardera. De delas in i grupper om {c}. Hur manga grupper bildas?",
+    },
+    "de": {
+        "bonus_1": "Ein Backer backt {a} Brotlaibe pro Tag. Jeder Laib hat {b} Scheiben. Wenn {c} Scheiben gegessen werden, wie viele bleiben ubrig?",
+        "bonus_2": "Eine Schule kauft {a} Packungen Bleistifte mit je {b} Bleistiften und gibt {c} Bleistifte weg. Wie viele Bleistifte bleiben ubrig?",
+        "bonus_3": "Ein Bus befordert {a} Kinder pro Fahrt und macht {b} Fahrten. Wenn {c} Kinder schon nach Hause gegangen sind, wie viele sind noch in der Schule?",
+        "bonus_4": "Es gibt {a} Teams mit je {b} Spielern. Sie werden in Gruppen zu je {c} aufgeteilt. Wie viele Gruppen entstehen?",
+    },
+    "id": {
+        "bonus_1": "Seorang pembuat roti membuat {a} roti per hari. Setiap roti memiliki {b} irisan. Jika {c} irisan dimakan, berapa irisan yang tersisa?",
+        "bonus_2": "Sebuah sekolah membeli {a} pak pensil dengan {b} pensil di setiap pak, lalu membagikan {c} pensil. Berapa pensil yang tersisa?",
+        "bonus_3": "Sebuah bus membawa {a} anak per perjalanan dan membuat {b} perjalanan. Jika {c} anak sudah pulang, berapa anak yang masih di sekolah?",
+        "bonus_4": "Ada {a} tim dengan {b} pemain masing-masing. Mereka dibagi menjadi kelompok berisi {c}. Berapa kelompok yang terbentuk?",
+    },
+}

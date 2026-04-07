@@ -12,6 +12,7 @@ import tkinter as tk
 from animations import CelebrationAnimator
 from constants import (
     APP_TITLE,
+    BONUS_TEMPLATE_TRANSLATIONS,
     COLORS,
     default_daily_seed,
     FONTS,
@@ -57,7 +58,6 @@ class MathChallengeApp(ctk.CTk):
         self.configure(fg_color=COLORS["background"])
         self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self.minsize(900, 720)
-        self.state("zoomed")
 
         self._center_window(WINDOW_WIDTH, WINDOW_HEIGHT)
         self._build_layout()
@@ -619,7 +619,8 @@ class MathChallengeApp(ctk.CTk):
         return self._t(f"section_{section_key}")
 
     def _display_question_text(self, question: dict[str, Any]) -> str:
-        if question.get("section") != "story":
+        section = question.get("section")
+        if section not in ("story", "bonus"):
             return str(question.get("question_text", ""))
 
         if self.current_language == "en":
@@ -630,7 +631,10 @@ class MathChallengeApp(ctk.CTk):
         if not isinstance(template_id, str) or not isinstance(template_values, dict):
             return str(question.get("question_text", ""))
 
-        localized_template = STORY_TEMPLATE_TRANSLATIONS.get(self.current_language, {}).get(template_id)
+        translation_map = (
+            STORY_TEMPLATE_TRANSLATIONS if section == "story" else BONUS_TEMPLATE_TRANSLATIONS
+        )
+        localized_template = translation_map.get(self.current_language, {}).get(template_id)
         if not localized_template:
             return str(question.get("question_text", ""))
 

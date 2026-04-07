@@ -111,13 +111,15 @@ def generate_questions(seed: int) -> list[Question]:
         question_id += 1
 
     bonus_template = rng.choice(BONUS_TEMPLATES)
-    bonus_text, bonus_answer, _ = _build_story_question(bonus_template, rng)
+    bonus_text, bonus_answer, bonus_values = _build_story_question(bonus_template, rng)
     questions.append(
         {
             "id": question_id,
             "section": "bonus",
             "question_text": bonus_text,
             "correct_answer": bonus_answer,
+            "template_id": bonus_template["id"],
+            "template_values": bonus_values,
         }
     )
 
