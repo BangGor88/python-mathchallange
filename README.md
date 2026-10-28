@@ -14,14 +14,11 @@
 
 **Download the Windows executable from this repository:**
 
-- Download the exe file [here](https://github.com/BangGor88/python-mathchallange/blob/main/math_challenge/dist/)
+- Download [MathChallenge.exe](https://github.com/BangGor88/python-mathchallange/blob/main/math_challenge/dist/MathChallenge.exe)
 
-1. Open the link above.
-2. Click **Download raw file**.
-3. Double-click it to run (no Python install required).
+On GitHub, click **Download raw file**, then double-click `MathChallenge.exe` to run it. No Python installation is required.
 
-> The app saves your daily score log in a `daily_tracker.json` file next to the executable.
-> Topic practice scores are saved separately by date and topic in the same file.
+The app saves preferences and scores in `daily_tracker.json` next to the executable. This includes the selected color mode, last topic, daily challenge scores, and separate topic practice scores.
 
 ---
 
@@ -29,10 +26,10 @@
 
 | Feature | Detail |
 |---|---|
-| 🎯 Choose a topic | Start with Fractions, Decimals, Multiplication by tens and hundreds, or the daily mixed challenge |
-| 🔄 Change topics anytime | Use **Change Topic** during practice; unfinished answers are cleared only after confirmation |
-| 💾 Remember the last topic | Reopens the last selected topic next time; the topic can still be changed immediately |
-| 🌙 Dark mode | Switch between light and dark colors; the preference is remembered |
+| 🎯 Topic chooser | Choose Fractions, Decimals, Multiplication by tens and hundreds, or the original daily mixed challenge |
+| 🔄 Change topics anytime | Use **Change Topic** in the top bar; unfinished answers are cleared only after confirmation |
+| 💾 Remember the last topic | Reopens the last selected topic on the next launch; use **Change Topic** to choose another |
+| 🌙 Dark mode | Toggle between light and dark using the top-bar button; the preference is remembered |
 | ✏️ Focused practice | Ten deterministic questions per topic session, with hints and answer feedback |
 | ➗ Fraction answers | Enter fractions such as `3/4`; equivalent forms such as `2/4` are accepted |
 | 📊 Separate topic history | Each focused topic keeps its own score history without replacing the daily challenge score |
