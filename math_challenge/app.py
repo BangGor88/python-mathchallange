@@ -20,13 +20,31 @@ from constants import (
     MINIMUM_PASS_SCORE,
     SCORE_LOG_DAYS,
     STORY_TEMPLATE_TRANSLATIONS,
+    TOPIC_HINT_TRANSLATIONS,
+    TOPIC_QUESTION_TRANSLATIONS,
     UI_TEXT,
     WINDOW_HEIGHT,
     WINDOW_WIDTH,
 )
-from questions import generate_questions
-from scorer import calculate_score, calculate_section_breakdown, check_answers, get_star_rating
-from tracker import get_recent_scores, get_today_score, has_completed_today, save_today
+from questions import generate_questions, generate_topic_questions
+from scorer import (
+    calculate_practice_score,
+    calculate_score,
+    calculate_section_breakdown,
+    check_answers,
+    get_star_rating,
+)
+from tracker import (
+    get_dark_mode,
+    get_last_topic,
+    get_recent_scores,
+    get_today_score,
+    has_completed_today,
+    save_last_topic,
+    save_dark_mode,
+    save_today,
+    save_topic_score,
+)
 
 
 class MathChallengeApp(ctk.CTk):
@@ -43,6 +61,7 @@ class MathChallengeApp(ctk.CTk):
         self.last_results: dict[int, bool] = {}
         self.last_unanswered_ids: set[int] = set()
         self.last_wrong_ids: set[int] = set()
+        self.current_topic: str | None = None
         self.current_language = "en"
         self.language_display_to_code = dict(LANGUAGE_OPTIONS)
         self.language_code_to_display = {code: display for display, code in LANGUAGE_OPTIONS.items()}
@@ -50,8 +69,11 @@ class MathChallengeApp(ctk.CTk):
         self.score_value_label: ctk.CTkLabel | None = None
         self.score_canvas: tk.Canvas | None = None
         self.animator: CelebrationAnimator | None = None
+        self.skip_daily_check = skip_daily_check
+        self.dark_mode = get_dark_mode()
+        self.history_canvas: tk.Canvas | None = None
 
-        ctk.set_appearance_mode("light")
+        ctk.set_appearance_mode("dark" if self.dark_mode else "light")
         ctk.set_default_color_theme("blue")
 
         self.title(APP_TITLE)
@@ -61,9 +83,9 @@ class MathChallengeApp(ctk.CTk):
 
         self._center_window(WINDOW_WIDTH, WINDOW_HEIGHT)
         self._build_layout()
-
-        self.skip_daily_check = skip_daily_check
-        self.after(50, self._check_daily_completion)
+        last_topic = get_last_topic()
+        if last_topic in ("fractions", "decimals", "multiplication", "mixed"):
+            self.after(50, lambda topic=last_topic: self._select_topic(topic))
 
     def _center_window(self, width: int, height: int) -> None:
         self.update_idletasks()
@@ -81,6 +103,8 @@ class MathChallengeApp(ctk.CTk):
         self.header.grid(row=0, column=0, padx=16, pady=(16, 10), sticky="ew")
         self.header.grid_columnconfigure(0, weight=1)
         self.header.grid_columnconfigure(1, weight=0)
+        self.header.grid_columnconfigure(2, weight=0)
+        self.header.grid_columnconfigure(3, weight=0)
 
         self.title_label = ctk.CTkLabel(
             self.header,
@@ -116,18 +140,39 @@ class MathChallengeApp(ctk.CTk):
             fg_color=COLORS["accent"],
             button_color=COLORS["accent_hover"],
             button_hover_color=COLORS["accent_hover"],
-            text_color="#F4FBF6",
+            text_color=COLORS["button_text"],
             width=180,
         )
         self.language_menu.grid(row=1, column=1, padx=(12, 12), pady=(0, 10), sticky="e")
+
+        self.dark_mode_button = ctk.CTkButton(
+            self.header,
+            text=self._t("light_mode" if self.dark_mode else "dark_mode"),
+            width=135,
+            font=FONTS["label"],
+            fg_color=COLORS["secondary"],
+            hover_color=COLORS["accent_hover"],
+            command=self._toggle_dark_mode,
+        )
+        self.dark_mode_button.grid(row=0, column=3, rowspan=2, padx=(8, 12), pady=10, sticky="e")
+
+        self.change_topic_button = ctk.CTkButton(
+            self.header,
+            text=self._t("change_topic"),
+            width=150,
+            font=FONTS["label"],
+            fg_color=COLORS["secondary"],
+            hover_color=COLORS["accent_hover"],
+            command=self._change_topic,
+        )
+        self.change_topic_button.grid(row=0, column=2, rowspan=2, padx=(8, 12), pady=10, sticky="e")
+        self.change_topic_button.grid_remove()
 
         self.scrollable = ctk.CTkScrollableFrame(self, fg_color=COLORS["panel"])
         self.scrollable.grid(row=1, column=0, padx=16, pady=8, sticky="nsew")
         self.scrollable.grid_columnconfigure(0, weight=1)
         self.scrollable.grid_columnconfigure(1, weight=1)
         self.scrollable.grid_columnconfigure(2, weight=1)
-
-        self._load_questions(self.current_seed)
 
         self.submit_button = ctk.CTkButton(
             self,
@@ -138,14 +183,122 @@ class MathChallengeApp(ctk.CTk):
             fg_color=COLORS["accent"],
             hover_color=COLORS["accent_hover"],
             command=self._submit_placeholder,
-            text_color="#F4FBF6",
+            text_color=COLORS["button_text"],
         )
         self.submit_button.grid(row=2, column=0, padx=16, pady=(10, 16))
+        self.submit_button.grid_remove()
+        self._render_topic_picker()
 
     def _load_questions(self, seed: int) -> None:
         self.current_seed = seed
-        self.questions = generate_questions(seed)
+        if self.current_topic == "mixed":
+            self.questions = generate_questions(seed)
+        elif self.current_topic is not None:
+            self.questions = generate_topic_questions(self.current_topic, seed)
+        else:
+            raise ValueError("Select a practice topic before loading questions.")
         self._render_questions()
+
+    def _render_topic_picker(self) -> None:
+        self._clear_scrollable()
+        self.answer_entries.clear()
+        self.correct_answer_labels.clear()
+
+        title = ctk.CTkLabel(
+            self.scrollable,
+            text=self._t("welcome_title"),
+            font=FONTS["title"],
+            text_color=COLORS["accent"],
+        )
+        title.grid(row=0, column=0, columnspan=2, pady=(70, 10))
+
+        prompt = ctk.CTkLabel(
+            self.scrollable,
+            text=self._t("choose_topic"),
+            font=FONTS["header"],
+            text_color=COLORS["text"],
+        )
+        prompt.grid(row=1, column=0, columnspan=2, pady=(0, 24))
+
+        for index, topic in enumerate(("fractions", "decimals", "multiplication", "mixed")):
+            button = ctk.CTkButton(
+                self.scrollable,
+                text=self._t(f"topic_{topic}"),
+                width=420,
+                height=64,
+                font=FONTS["button"],
+                fg_color=COLORS["accent"] if topic != "mixed" else COLORS["bonus"],
+                hover_color=COLORS["accent_hover"] if topic != "mixed" else COLORS["bonus_hover"],
+                text_color=COLORS["button_text"],
+                command=lambda selected_topic=topic: self._select_topic(selected_topic),
+            )
+            button.grid(row=index + 2, column=0, columnspan=2, pady=8)
+
+        self.submit_button.grid_remove()
+        self.change_topic_button.grid_remove()
+
+    def _select_topic(self, topic: str) -> None:
+        if topic == "mixed" and not self._check_daily_completion():
+            self.destroy()
+            return
+
+        save_last_topic(topic)
+        self.current_topic = topic
+        self.change_topic_button.configure(text=self._t("change_topic"))
+        self.change_topic_button.grid(row=0, column=2, rowspan=2, padx=(8, 12), pady=10, sticky="e")
+        self.submit_button.configure(text=self._t("submit_answers"))
+        self.submit_button.grid(row=2, column=0, padx=16, pady=(10, 16))
+        self._load_questions(default_daily_seed())
+
+    def _toggle_dark_mode(self) -> None:
+        self.dark_mode = not self.dark_mode
+        ctk.set_appearance_mode("dark" if self.dark_mode else "light")
+        save_dark_mode(self.dark_mode)
+        self.dark_mode_button.configure(
+            text=self._t("light_mode" if self.dark_mode else "dark_mode")
+        )
+        self.configure(fg_color=self._theme_color("background"))
+        if self.history_canvas is not None and self.history_canvas.winfo_exists():
+            self.history_canvas.configure(bg=self._theme_color("panel"))
+            history_topic = None if self.current_topic == "mixed" else self.current_topic
+            self._draw_score_log_chart(
+                self.history_canvas,
+                get_recent_scores(limit=SCORE_LOG_DAYS, topic=history_topic),
+            )
+        if self.score_canvas is not None and self.score_canvas.winfo_exists():
+            self.score_canvas.configure(bg=self._theme_color("background"))
+
+    def _theme_color(self, color_name: str) -> str:
+        return COLORS[color_name][1 if self.dark_mode else 0]
+
+    def _change_topic(self) -> None:
+        if self.current_topic is None:
+            return
+        if self.score_frame is None:
+            should_change = self._ask_confirmation(
+                title=self._t("switch_topic_title"),
+                message=self._t("switch_topic_message"),
+                confirm_text=self._t("popup_submit_anyway"),
+                cancel_text=self._t("popup_go_back"),
+            )
+            if not should_change:
+                return
+
+        if self.animator is not None:
+            self.animator.clear()
+        if self.score_frame is not None:
+            self.score_frame.destroy()
+            self.score_frame = None
+            self.score_value_label = None
+            self.score_canvas = None
+            self.animator = None
+
+        self.current_topic = None
+        self.questions = []
+        self.language_label.grid()
+        self.language_menu.grid()
+        self.scrollable.grid(row=1, column=0, padx=16, pady=8, sticky="nsew")
+        self._render_topic_picker()
 
     def _clear_scrollable(self) -> None:
         for widget in self.scrollable.winfo_children():
@@ -163,13 +316,27 @@ class MathChallengeApp(ctk.CTk):
             "division": [],
             "story": [],
             "bonus": [],
+            "practice": [],
         }
         for question in self.questions:
-            grouped[question["section"]].append(question)
+            section = question["section"]
+            grouped.setdefault(section, []).append(question)
 
         row = 0
-        section_order = ["addition", "subtraction", "multiplication", "division", "story", "bonus"]
+        section_order = [
+            "addition",
+            "subtraction",
+            "multiplication",
+            "division",
+            "story",
+            "bonus",
+            "practice",
+        ]
+        section_order.extend(section for section in grouped if section not in section_order)
         for section in section_order:
+            section_questions = grouped[section]
+            if not section_questions:
+                continue
             heading = ctk.CTkLabel(
                 self.scrollable,
                 text=self._section_heading(section),
@@ -179,7 +346,6 @@ class MathChallengeApp(ctk.CTk):
             heading.grid(row=row, column=0, columnspan=3, sticky="w", pady=(16, 8), padx=10)
             row += 1
 
-            section_questions = grouped[section]
             for index, question in enumerate(section_questions):
                 col = index % 3
                 if col == 0 and index > 0:
@@ -205,8 +371,8 @@ class MathChallengeApp(ctk.CTk):
                     width=180,
                     height=36,
                     font=FONTS["label"],
-                    fg_color="#EDF8F0",
-                    text_color="#1E3A2B",
+                    fg_color=COLORS["input"],
+                    text_color=COLORS["input_text"],
                     border_color=COLORS["accent"],
                 )
                 entry.grid(row=1, column=0, sticky="w", padx=12, pady=(0, 8))
@@ -226,23 +392,21 @@ class MathChallengeApp(ctk.CTk):
 
             row += 1
 
-    def _check_daily_completion(self) -> None:
+    def _check_daily_completion(self) -> bool:
         if self.skip_daily_check:
-            return
+            return True
 
         if not has_completed_today():
-            return
+            return True
 
         score = get_today_score()
         shown_score = score if score is not None else 0
-        open_anyway = self._ask_confirmation(
+        return self._ask_confirmation(
             title=self._t("quiz_completed_title"),
             message=self._t("quiz_completed_message", score=shown_score),
             confirm_text=self._t("popup_open_anyway"),
             cancel_text=self._t("popup_exit"),
         )
-        if not open_anyway:
-            self.destroy()
 
     def _submit_placeholder(self) -> None:
         user_answers: dict[int, str] = {}
@@ -265,7 +429,10 @@ class MathChallengeApp(ctk.CTk):
                 return
 
         results = check_answers(self.questions, user_answers)
-        score = calculate_score(results)
+        if self.current_topic == "mixed":
+            score = calculate_score(results)
+        else:
+            score = calculate_practice_score(results)
         self.last_user_answers = dict(user_answers)
         self.last_results = dict(results)
         self.last_unanswered_ids = {
@@ -290,9 +457,9 @@ class MathChallengeApp(ctk.CTk):
                 entry.configure(fg_color=COLORS["wrong"], text_color="white", border_color=COLORS["wrong"])
                 label.configure(text="")
 
-        if score >= MINIMUM_PASS_SCORE:
+        if self.current_topic == "mixed" and score >= MINIMUM_PASS_SCORE:
             save_today(score)
-        else:
+        elif self.current_topic == "mixed":
             redo_now = self._ask_confirmation(
                 title=self._t("minimum_score_title"),
                 message=self._t("minimum_score_message", minimum=MINIMUM_PASS_SCORE),
@@ -302,6 +469,8 @@ class MathChallengeApp(ctk.CTk):
             if redo_now:
                 self._prepare_retry_entries()
                 return
+        elif self.current_topic is not None:
+            save_topic_score(score, self.current_topic)
 
         self.after(350, lambda: self._show_score_screen(score, results))
 
@@ -317,7 +486,11 @@ class MathChallengeApp(ctk.CTk):
             entry.delete(0, "end")
             if was_correct and previous_value.strip():
                 entry.insert(0, previous_value)
-            entry.configure(fg_color="#EDF8F0", text_color="#1E3A2B", border_color=COLORS["accent"])
+            entry.configure(
+                fg_color=COLORS["input"],
+                text_color=COLORS["input_text"],
+                border_color=COLORS["accent"],
+            )
             label.configure(text="")
 
     def _show_score_screen(self, score: int, results: dict[int, bool]) -> None:
@@ -326,7 +499,20 @@ class MathChallengeApp(ctk.CTk):
         self.scrollable.grid_forget()
         self.submit_button.grid_forget()
 
-        breakdown = calculate_section_breakdown(results)
+        if self.current_topic == "mixed":
+            breakdown = calculate_section_breakdown(results)
+            breakdown_text = self._t(
+                "section_breakdown",
+                a=breakdown["A"],
+                b=breakdown["B"],
+                bonus=breakdown["bonus"],
+            )
+        else:
+            breakdown_text = self._t(
+                "practice_breakdown",
+                correct=sum(results.values()),
+                total=len(results),
+            )
         stars = get_star_rating(score)
 
         self.score_frame = ctk.CTkFrame(self, fg_color=COLORS["background"])
@@ -362,7 +548,7 @@ class MathChallengeApp(ctk.CTk):
 
         breakdown_label = ctk.CTkLabel(
             self.score_frame,
-            text=self._t("section_breakdown", a=breakdown["A"], b=breakdown["B"], bonus=breakdown["bonus"]),
+            text=breakdown_text,
             font=FONTS["label"],
             text_color=COLORS["text"],
         )
@@ -387,7 +573,7 @@ class MathChallengeApp(ctk.CTk):
             text=self._t("new_questions_button"),
             font=FONTS["label"],
             fg_color=COLORS["bonus"],
-            hover_color="#D98A0E",
+            hover_color=COLORS["bonus_hover"],
             command=lambda: self._reset_quiz(self.current_seed + 1, preserve_previous=False),
             width=200,
             height=44,
@@ -464,9 +650,16 @@ class MathChallengeApp(ctk.CTk):
             ).grid(row=1, column=0, sticky="w", padx=8, pady=4)
         else:
             for index, question in enumerate(wrong_questions, start=1):
+                feedback = ""
+                if question.get("hint"):
+                    feedback = "\n" + self._t(
+                        "practice_answer_hint",
+                        answer=question["correct_answer"],
+                        hint=self._display_question_hint(question),
+                    )
                 ctk.CTkLabel(
                     wrong_box,
-                    text=f"Q{question['id']}: {self._display_question_text(question)}",
+                    text=f"Q{question['id']}: {self._display_question_text(question)}{feedback}",
                     font=FONTS["label"],
                     text_color=COLORS["text"],
                     anchor="w",
@@ -484,7 +677,15 @@ class MathChallengeApp(ctk.CTk):
 
         chart_title = ctk.CTkLabel(
             self.score_frame,
-            text=self._t("score_log", days=SCORE_LOG_DAYS),
+            text=(
+                self._t("score_log", days=SCORE_LOG_DAYS)
+                if self.current_topic == "mixed"
+                else self._t(
+                    "practice_score_log",
+                    topic=self._t(f"topic_{self.current_topic}"),
+                    days=SCORE_LOG_DAYS,
+                )
+            ),
             font=FONTS["header"],
             text_color=COLORS["accent"],
         )
@@ -494,17 +695,22 @@ class MathChallengeApp(ctk.CTk):
             self.score_frame,
             width=720,
             height=210,
-            bg=COLORS["panel"],
+            bg=self._theme_color("panel"),
             highlightthickness=0,
         )
         history_canvas.grid(row=9, column=0, pady=(0, 12))
-        self._draw_score_log_chart(history_canvas, get_recent_scores(limit=SCORE_LOG_DAYS))
+        self.history_canvas = history_canvas
+        history_topic = None if self.current_topic == "mixed" else self.current_topic
+        self._draw_score_log_chart(
+            history_canvas,
+            get_recent_scores(limit=SCORE_LOG_DAYS, topic=history_topic),
+        )
 
         self.score_canvas = tk.Canvas(
             self.score_frame,
             width=720,
             height=180,
-            bg=COLORS["background"],
+            bg=self._theme_color("background"),
             highlightthickness=0,
         )
         self.score_canvas.grid(row=10, column=0, pady=(0, 12))
@@ -519,7 +725,7 @@ class MathChallengeApp(ctk.CTk):
                 360,
                 105,
                 text=self._t("no_scores"),
-                fill=COLORS["muted"],
+                fill=self._theme_color("muted"),
                 font=FONTS["header"],
             )
             return
@@ -531,13 +737,20 @@ class MathChallengeApp(ctk.CTk):
         width = right - left
         height = bottom - top
 
-        canvas.create_line(left, top, left, bottom, fill=COLORS["muted"], width=2)
-        canvas.create_line(left, bottom, right, bottom, fill=COLORS["muted"], width=2)
+        canvas.create_line(left, top, left, bottom, fill=self._theme_color("muted"), width=2)
+        canvas.create_line(left, bottom, right, bottom, fill=self._theme_color("muted"), width=2)
 
         for tick, label in [(0, "0"), (50, "50"), (100, "100")]:
             y = bottom - (height * tick / 100)
-            canvas.create_line(left - 6, y, left, y, fill=COLORS["muted"], width=2)
-            canvas.create_text(left - 12, y, text=label, fill=COLORS["muted"], font=FONTS["label"], anchor="e")
+            canvas.create_line(left - 6, y, left, y, fill=self._theme_color("muted"), width=2)
+            canvas.create_text(
+                left - 12,
+                y,
+                text=label,
+                fill=self._theme_color("muted"),
+                font=FONTS["label"],
+                anchor="e",
+            )
 
         slot_width = width / max(1, len(data_points))
         bar_width = max(14, min(40, int(slot_width * 0.55)))
@@ -549,9 +762,21 @@ class MathChallengeApp(ctk.CTk):
             x1 = center_x + (bar_width / 2)
             y0 = bottom - (height * score / 100)
 
-            canvas.create_rectangle(x0, y0, x1, bottom, fill=COLORS["accent"], outline="")
-            canvas.create_text(center_x, y0 - 8, text=str(score), fill=COLORS["text"], font=FONTS["label"])
-            canvas.create_text(center_x, bottom + 16, text=day_key[5:], fill=COLORS["muted"], font=FONTS["label"])
+            canvas.create_rectangle(x0, y0, x1, bottom, fill=self._theme_color("accent"), outline="")
+            canvas.create_text(
+                center_x,
+                y0 - 8,
+                text=str(score),
+                fill=self._theme_color("text"),
+                font=FONTS["label"],
+            )
+            canvas.create_text(
+                center_x,
+                bottom + 16,
+                text=day_key[5:],
+                fill=self._theme_color("muted"),
+                font=FONTS["label"],
+            )
 
     def _animate_score_counter(self, target_score: int) -> None:
         if self.score_value_label is None:
@@ -603,12 +828,12 @@ class MathChallengeApp(ctk.CTk):
             if mode == "correct":
                 entry.insert(0, str(question["correct_answer"]))
             elif mode == "wrong":
-                entry.insert(0, str(int(question["correct_answer"]) + 1))
+                entry.insert(0, "999")
             elif mode == "mixed":
                 if qid % 3 == 0:
                     entry.insert(0, "")
                 elif qid % 2 == 0:
-                    entry.insert(0, str(int(question["correct_answer"]) + 1))
+                    entry.insert(0, "999")
                 else:
                     entry.insert(0, str(question["correct_answer"]))
 
@@ -620,6 +845,17 @@ class MathChallengeApp(ctk.CTk):
 
     def _display_question_text(self, question: dict[str, Any]) -> str:
         section = question.get("section")
+        if section == "practice":
+            template_id = question.get("template_id")
+            template_values = question.get("template_values")
+            if isinstance(template_id, str) and isinstance(template_values, dict):
+                localized_template = TOPIC_QUESTION_TRANSLATIONS.get(
+                    self.current_language, TOPIC_QUESTION_TRANSLATIONS["en"]
+                ).get(template_id)
+                if localized_template:
+                    return localized_template.format(**template_values)
+            return str(question.get("question_text", ""))
+
         if section not in ("story", "bonus"):
             return str(question.get("question_text", ""))
 
@@ -643,6 +879,17 @@ class MathChallengeApp(ctk.CTk):
         except KeyError:
             return str(question.get("question_text", ""))
 
+    def _display_question_hint(self, question: dict[str, Any]) -> str:
+        hint_id = question.get("hint_id")
+        template_values = question.get("template_values")
+        if isinstance(hint_id, str) and isinstance(template_values, dict):
+            localized_hint = TOPIC_HINT_TRANSLATIONS.get(
+                self.current_language, TOPIC_HINT_TRANSLATIONS["en"]
+            ).get(hint_id)
+            if localized_hint:
+                return localized_hint.format(**template_values)
+        return str(question.get("hint", ""))
+
     def _today_label_text(self) -> str:
         return f"{self._t('today_prefix')} {date.today().strftime('%A, %d %B %Y')}"
 
@@ -661,13 +908,20 @@ class MathChallengeApp(ctk.CTk):
         self.language_label.configure(text=self._t("language"))
         self.date_label.configure(text=self._today_label_text())
         self.submit_button.configure(text=self._t("submit_answers"))
+        self.dark_mode_button.configure(
+            text=self._t("light_mode" if self.dark_mode else "dark_mode")
+        )
 
         if self.score_frame is None:
-            existing_answers = {qid: entry.get() for qid, entry in self.answer_entries.items()}
-            self._render_questions()
-            for qid, value in existing_answers.items():
-                if qid in self.answer_entries:
-                    self.answer_entries[qid].insert(0, value)
+            self.change_topic_button.configure(text=self._t("change_topic"))
+            if self.current_topic is None:
+                self._render_topic_picker()
+            else:
+                existing_answers = {qid: entry.get() for qid, entry in self.answer_entries.items()}
+                self._render_questions()
+                for qid, value in existing_answers.items():
+                    if qid in self.answer_entries:
+                        self.answer_entries[qid].insert(0, value)
 
     def _ask_confirmation(self, title: str, message: str, confirm_text: str, cancel_text: str) -> bool:
         dialog = ctk.CTkToplevel(self)
@@ -731,7 +985,7 @@ class MathChallengeApp(ctk.CTk):
             font=FONTS["label"],
             fg_color=COLORS["accent"],
             hover_color=COLORS["accent_hover"],
-            text_color="#F4FBF6",
+            text_color=COLORS["button_text"],
             command=on_confirm,
             width=150,
         )

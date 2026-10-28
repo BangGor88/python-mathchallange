@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from fractions import Fraction
 from typing import Any
 
 from constants import POINTS_PER_SECTION, QUESTION_COUNTS
@@ -18,8 +19,8 @@ def _parse_numeric(value: Any) -> float | None:
         return None
 
     try:
-        return float(text)
-    except ValueError:
+        return float(Fraction(text))
+    except (ValueError, ZeroDivisionError):
         return None
 
 
@@ -43,6 +44,13 @@ def check_answers(questions: list[dict[str, Any]], user_answers: dict[int, Any])
         results[question_id] = _is_close_enough(provided, expected)
 
     return results
+
+
+def calculate_practice_score(results: dict[int, bool]) -> int:
+    """Return a percentage score for a focused topic practice set."""
+    if not results:
+        return 0
+    return round(100 * sum(results.values()) / len(results))
 
 
 def calculate_section_breakdown(results: dict[int, bool]) -> dict[str, int]:

@@ -32,7 +32,12 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     app = MathChallengeApp(skip_daily_check=True)
-    app.after(args.delay_ms, lambda: app.autofill_for_qa(mode=args.mode, submit=args.submit))
+
+    def run_qa() -> None:
+        app._select_topic("mixed")
+        app.autofill_for_qa(mode=args.mode, submit=args.submit)
+
+    app.after(args.delay_ms, run_qa)
     app.mainloop()
 
 

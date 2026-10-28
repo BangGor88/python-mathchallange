@@ -1,6 +1,6 @@
 # 🧮 Math Challenge
 
-> A daily math quiz desktop app for kids — fun, fast, and gets a little trickier as you go!
+> A friendly math practice app for kids, with Grade 5 topic practice and a daily mixed challenge.
 
 ![Platform](https://img.shields.io/badge/platform-Windows-blue?logo=windows)
 ![Python](https://img.shields.io/badge/python-3.10%2B-yellow?logo=python)
@@ -21,6 +21,7 @@
 3. Double-click it to run (no Python install required).
 
 > The app saves your daily score log in a `daily_tracker.json` file next to the executable.
+> Topic practice scores are saved separately by date and topic in the same file.
 
 ---
 
@@ -28,6 +29,13 @@
 
 | Feature | Detail |
 |---|---|
+| 🎯 Choose a topic | Start with Fractions, Decimals, Multiplication by tens and hundreds, or the daily mixed challenge |
+| 🔄 Change topics anytime | Use **Change Topic** during practice; unfinished answers are cleared only after confirmation |
+| 💾 Remember the last topic | Reopens the last selected topic next time; the topic can still be changed immediately |
+| 🌙 Dark mode | Switch between light and dark colors; the preference is remembered |
+| ✏️ Focused practice | Ten deterministic questions per topic session, with hints and answer feedback |
+| ➗ Fraction answers | Enter fractions such as `3/4`; equivalent forms such as `2/4` are accepted |
+| 📊 Separate topic history | Each focused topic keeps its own score history without replacing the daily challenge score |
 | 📐 43 questions per day | 9 × Addition, Subtraction, Multiplication, Division · 6 Story problems · 1 Bonus |
 | 🎲 Fresh questions daily | Seeded by today's date — same questions if you reopen the same day |
 | 🟢 Easy start | First 3 questions in each operation are simpler to warm up |
@@ -92,7 +100,7 @@ Output: **`dist/MathChallenge.exe`**
 pytest tests/
 ```
 
-All 13 unit tests cover question generation, scoring weights, and daily tracker persistence.
+Unit tests cover daily and topic question generation, fraction answer checking, scoring weights, and score persistence.
 
 ---
 
@@ -118,4 +126,3 @@ math_challenge/
 ## 📜 License
 
 MIT — free to use, share, and modify.
-

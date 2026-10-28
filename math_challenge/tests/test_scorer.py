@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from questions import generate_questions
-from scorer import calculate_score, check_answers
+from scorer import calculate_practice_score, calculate_score, check_answers
 
 
 def _build_answer_map(questions: list[dict], mode: str) -> dict[int, str]:
@@ -55,3 +55,24 @@ def test_blank_whitespace_answer_is_wrong() -> None:
     results = check_answers(questions, user_answers)
 
     assert results[1] is False
+
+
+def test_fraction_answers_accept_equivalent_notation() -> None:
+    questions = [{"id": 1, "correct_answer": "1/2"}]
+
+    results = check_answers(questions, {1: "2/4"})
+
+    assert results == {1: True}
+
+
+def test_fraction_answer_rejects_zero_denominator() -> None:
+    questions = [{"id": 1, "correct_answer": "1/2"}]
+
+    results = check_answers(questions, {1: "1/0"})
+
+    assert results == {1: False}
+
+
+def test_focused_practice_score_is_a_percentage() -> None:
+    assert calculate_practice_score({qid: qid <= 7 for qid in range(1, 11)}) == 70
+    assert calculate_practice_score({}) == 0
